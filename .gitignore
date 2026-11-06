@@ -1,11 +1,19 @@
+# Client Private App
+lib/
+__MACOSX/
+
 # OS files
 .DS_Store
 .DS_Store?
 ._*
-__MACOSX/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Build and temp files
 *.tmp
