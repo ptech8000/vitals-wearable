@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070b14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PulseGuard">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>PulseGuard - Vitals Watch</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    .quick-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .quick-btn {
+      flex: 1;
+      min-width: 150px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      color: var(--text-main);
+      backdrop-filter: blur(16px);
+      transition: var(--transition);
+    }
+    .quick-btn:hover {
+      background: var(--card-hover);
+      transform: translateY(-1px);
+    }
+    .quick-btn.ble-active {
+      border-color: var(--c-spo2);
+      color: var(--c-spo2);
+      box-shadow: 0 0 12px var(--c-spo2-glow);
+    }
+    .quick-btn.wifi-active {
+      border-color: var(--c-ok);
+      color: var(--c-ok);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+    }
+    .console-drawer {
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      max-height: 140px;
+      overflow-y: auto;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff2a5f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>PulseGuard</h1>
+          <span>Smart Wearable Companion</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="conn-pill" id="connPill">
+          <i class="conn-dot"></i>
+          <span id="connStatusText">Offline</span>
+        </div>
+        <button class="icon-btn" id="btnSoundToggle" title="Toggle Heartbeat Chime">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+        </button>
+        <button class="icon-btn" id="btnToggleConsole" title="Toggle Connection Logs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Quick Connection Bar -->
+    <div class="quick-bar">
+      <button class="quick-btn" id="btnBleQuick">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
+        </svg>
+        Connect Bluetooth
+      </button>
+      <button class="quick-btn" id="btnWifiQuick">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        Connect Wi-Fi
+      </button>
+    </div>
+
+    <!-- Diagnostic Logs Drawer (Collapsible) -->
+    <div class="console-drawer" id="consoleDrawer" style="display: none;">
+      <div style="font-weight: 700; color: #cbd5e1; margin-bottom: 4px; display: flex; justify-content: space-between;">
+        <span>Connection Activity Logs:</span>
+        <span style="font-size: 0.7rem; color: #64748b;">(Click terminal icon to hide)</span>
+      </div>
+      <div id="appConsole"></div>
+    </div>
+
+    <!-- Alert / Status Banner -->
+    <div class="alert-banner idle" id="alertBanner">
+      Touch the pulse sensor or attach ECG electrodes to begin monitoring
+    </div>
+
+    <!-- TAB 1: MAIN DASHBOARD -->
+    <main class="tab-content active" id="tab-dashboard">
+      <div class="vitals-grid">
+        <!-- Heart Rate Card -->
+        <div class="card card-hr">
+          <div class="card-header">
+            <span class="card-title">Heart Rate</span>
+            <span class="card-badge" id="bpmBadge">WAITING</span>
+          </div>
+          <div class="vital-metric">
+            <span class="heart-icon" id="heartIcon">❤️</span>
+            <span class="vital-value" id="bpmVal">--</span>
+            <span class="vital-unit">bpm</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="bpmProgress" style="width: 0%;"></div>
+          </div>
+          <div class="card-subtext" id="bpmSubtext">Place finger on sensor</div>
+        </div>
+
+        <!-- Blood Oxygen Card -->
+        <div class="card card-spo2">
+          <div class="card-header">
+            <span class="card-title">Blood Oxygen</span>
+            <span class="card-badge" id="spo2Badge">--</span>
+          </div>
+          <div class="vital-metric">
+            <span class="vital-value" id="spo2Val">--</span>
+            <span class="vital-unit">%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="spo2Progress" style="width: 0%;"></div>
+          </div>
+          <div class="card-subtext">Optical SpO₂ Reflectance</div>
+        </div>
+
+        <!-- Temperature Card -->
+        <div class="card card-temp">
+          <div class="card-header">
+            <span class="card-title">Temperature</span>
+            <span class="card-badge" id="tempBadge">--</span>
+          </div>
+          <div class="vital-metric">
+            <span class="vital-value" id="tempVal">--</span>
+            <span class="vital-unit">°C</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="tempProgress" style="width: 0%;"></div>
+          </div>
+          <div class="card-subtext">Calibrated Body Temperature</div>
+        </div>
+
+        <!-- Real-time ECG Trace Card -->
+        <div class="card card-ecg">
+          <div class="card-header">
+            <span class="card-title">Real-Time ECG Waveform</span>
+            <span class="card-badge" id="ecgLeadsBadge">LEADS DISCONNECTED</span>
+          </div>
+          <div class="ecg-container">
+            <canvas id="ecgCanvas"></canvas>
+            <div class="ecg-overlay-stats">
+              <span>Filter: 50Hz Notch</span>
+              <span>Rate: 250 Hz</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: ANALYTICS & LOGS -->
+    <section class="tab-content" id="tab-analytics">
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <span class="card-title">Session Overview</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Average HR</div>
+            <div class="stat-val" id="statHrAvg" style="color: var(--c-hr);">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Min HR</div>
+            <div class="stat-val" id="statHrMin">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Max HR</div>
+            <div class="stat-val" id="statHrMax">--</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Lowest SpO₂</div>
+            <div class="stat-val" id="statSpo2Min" style="color: var(--c-spo2);">--</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnExportCsv">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export Session CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Clinical Study Notes</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+          Session data is recorded locally in your browser memory every 3 seconds. For research or final year project reporting, use the <strong>Export Session CSV</strong> button to generate structured datasets for Bland-Altman agreement plots, RMSE error, and statistical verification against reference pulse oximeters.
+        </p>
+      </div>
+    </section>
+
+    <!-- TAB 3: DEVICE & CONNECTIVITY -->
+    <section class="tab-content" id="tab-connect">
+      <!-- Bluetooth Section -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <span class="card-title">Bluetooth Low Energy (BLE)</span>
+          <span class="card-badge" style="color: var(--c-spo2);">DIRECT WIRELESS</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;">
+          Connects directly to the watch GATT server (<strong>Vitals-Watch</strong>). Transmits real-time BPM, SpO₂, temperature, and filtered 250 Hz ECG telemetry without needing a shared Wi-Fi router.
+        </p>
+        <button class="btn btn-cyan" id="btnBleConnect">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
+          </svg>
+          Connect via Bluetooth
+        </button>
+      </div>
+
+      <!-- Wi-Fi Section -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header">
+          <span class="card-title">Local Wi-Fi Network / Hotspot</span>
+          <span class="card-badge" style="color: var(--c-ok);">TCP / IP</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+          Connect over your local LAN or the watch's built-in access point hotspot (<strong>Vitals-Watch</strong> / password <code>vitals123</code>).
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="wifiIpInput">Device IP Address / Hostname</label>
+          <input type="text" class="form-input" id="wifiIpInput" placeholder="192.168.0.196 or 192.168.4.1">
+        </div>
+        <button class="btn btn-secondary" id="btnWifiConnect">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+          Connect via Wi-Fi
+        </button>
+      </div>
+
+      <!-- Device Specs -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Device Profile</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); display: grid; gap: 8px;">
+          <div><strong>Hardware:</strong> ESP32-S3 Dual-Core Xtensa LX7</div>
+          <div><strong>Sensors:</strong> AD8232 (ECG) • MAX30102 (PPG) • MLX90614 (IR Temp)</div>
+          <div><strong>BLE Services:</strong> Standard Heart Rate (0x180D) • Custom Vitals (19b10000)</div>
+          <div><strong>App Version:</strong> PulseGuard v2.4 (PWA Installable)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Floating Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="tab-dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        Vitals
+      </button>
+      <button class="nav-item" data-tab="tab-analytics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        Analytics
+      </button>
+      <button class="nav-item" data-tab="tab-connect">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="2"></circle>
+          <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+        </svg>
+        Connect
+      </button>
+    </nav>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
