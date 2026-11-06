@@ -56,6 +56,9 @@
 | **AD8232 ECG** | LO+ / LO- | **GPIO 10 / GPIO 11** | 3.3V | Leads-off fault detection |
 | **All Modules** | VCC / GND | **3V3 / GND** | 3.3V | Common regulated power rail |
 
+### Circuit Diagram (Cirkit Designer Layout)
+![PulseGuard Circuit Schematic](images/cirkit_designer_schematic.png)
+
 ---
 
 ## 📁 Repository Structure
